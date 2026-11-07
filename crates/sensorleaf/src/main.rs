@@ -110,15 +110,27 @@ impl App {
         for d in &snap.devices {
             let dk = format!("dev/{}", d.id);
             let dev_open = !self.collapsed.contains(&dk);
+            // Collapsed device: show its headline reading (hottest temperature, or first group).
+            let (value, min, max) = if dev_open {
+                Default::default()
+            } else {
+                let groups = d.groups();
+                groups
+                    .iter()
+                    .find(|(k, _)| *k == Kind::Temperature)
+                    .or(groups.first())
+                    .map(|(k, v)| summary(s, d, *k, v))
+                    .unwrap_or_default()
+            };
             out.push(Row {
                 depth: 1,
                 key: dk.clone(),
                 label: d.name.clone(),
                 icon: Icon::Device(dev_kind(&d.id)),
                 has_children: true,
-                value: String::new(),
-                min: String::new(),
-                max: String::new(),
+                value,
+                min,
+                max,
             });
             if !dev_open {
                 continue;
@@ -126,15 +138,16 @@ impl App {
             for (k, sensors) in d.groups() {
                 let gk = format!("{dk}/{k:?}");
                 let g_open = !self.collapsed.contains(&gk);
+                let (value, min, max) = if g_open { Default::default() } else { summary(s, d, k, &sensors) };
                 out.push(Row {
                     depth: 2,
                     key: gk.clone(),
                     label: k.group_name().into(),
                     icon: Icon::Group(k),
                     has_children: true,
-                    value: String::new(),
-                    min: String::new(),
-                    max: String::new(),
+                    value,
+                    min,
+                    max,
                 });
                 if !g_open {
                     continue;
@@ -179,6 +192,29 @@ impl App {
             };
         }
     }
+}
+
+/// Value shown on a collapsed row: the highest reading for temperatures, clocks,
+/// fans and voltages; charge level / current capacity for a battery; the first
+/// (main) reading for every other group.
+fn summary(
+    s: &Shared,
+    d: &sensorleaf_core::Device,
+    k: Kind,
+    sensors: &[&sensorleaf_core::Sensor],
+) -> (String, String, String) {
+    let pick = match k {
+        Kind::Temperature | Kind::Clock | Kind::Fan | Kind::Voltage => {
+            sensors.iter().max_by(|a, b| a.value.total_cmp(&b.value))
+        }
+        _ => sensors
+            .iter()
+            .find(|x| x.label == "Charge Level" || x.label == "Current Capacity")
+            .or(sensors.first()),
+    };
+    let Some(sn) = pick else { return Default::default() };
+    let (mn, mx) = s.minmax.get(d, sn);
+    (sn.format(sn.value), format_value(mn, sn.unit, sn.decimals), format_value(mx, sn.unit, sn.decimals))
 }
 
 fn setup_style(ctx: &egui::Context) {
