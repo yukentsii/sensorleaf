@@ -1,0 +1,10 @@
+[Unit]
+Description=SensorLeaf read-only sensor helper socket
+
+[Socket]
+ListenStream=/run/sensorleaf/helper.sock
+SocketMode=0666
+DirectoryMode=0755
+
+[Install]
+WantedBy=sockets.target

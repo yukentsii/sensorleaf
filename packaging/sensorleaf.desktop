@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=SensorLeaf
+GenericName=Hardware Monitor
+Comment=Show temperatures, voltages, power, clocks and fan speeds
+Exec=sensorleaf
+Icon=sensorleaf
+Terminal=false
+Categories=System;Monitor;
+Keywords=sensors;temperature;hwmon;fan;voltage;power;
+StartupWMClass=sensorleaf

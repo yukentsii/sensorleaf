@@ -1,0 +1,12 @@
+post_install() {
+  modprobe -q msr || true
+  systemctl daemon-reload
+  systemctl enable --now sensorleaf-helper.socket
+}
+post_upgrade() {
+  systemctl daemon-reload
+  systemctl try-restart sensorleaf-helper.service || true
+}
+pre_remove() {
+  systemctl disable --now sensorleaf-helper.socket sensorleaf-helper.service || true
+}
